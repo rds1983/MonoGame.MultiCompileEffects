@@ -4,6 +4,6 @@
     <StartAction>Program</StartAction>
     <StartProgram>C:\Program Files (x86)\MSBuild\MonoGame\v3.0\Tools\MGCB.exe</StartProgram>
     <StartArguments>/rebuild /reference:"D:\Projects\MonoGame.MultiCompileEffects\MonoGame.MultiCompileEffects.Content.Pipeline\bin\Debug\MonoGame.MultiCompileEffects.Content.Pipeline.dll" /importer:EffectImporter /processor:MultiCompileEffectProcessor /build:BasicEffect.fx &gt;a</StartArguments>
-    <StartWorkingDirectory>D:\Projects\MonoGame.MultiCompileEffects\MonoGame.MultiCompileEffects.Content.Pipeline\Sample\</StartWorkingDirectory>
+    <StartWorkingDirectory>D:\Projects\MonoGame.MultiCompileEffects\MonoGame.MultiCompileEffects.TestGame\Content\</StartWorkingDirectory>
   </PropertyGroup>
 </Project>

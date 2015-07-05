@@ -106,7 +106,7 @@ namespace MonoGame.MultiCompileEffects.Content.Pipeline
             {
                 context.Logger.LogMessage("No multi compile pragmas found, only one default variant will be compiled");
                 var ec = effectProcessor.Process(input, context);
-                result.AddVariant(new string[0], ec.GetEffectCode());
+                result.MultiCompileEffect.AddVariant(MultiCompileEffect.BuildKey(new string[0]), ec.GetEffectCode());
                 return result;
             }
 
@@ -121,64 +121,75 @@ namespace MonoGame.MultiCompileEffects.Content.Pipeline
             var indices = new int[defineSets.Length];
             Array.Clear(indices, 0, indices.Length);
 
-            // Save code to temporary file
-            var codeFolder = Path.GetDirectoryName(input.Identity.SourceFilename);
-            var codeFile = Path.GetFileName(input.Identity.SourceFilename);
-            var temporaryPath = Path.Combine(codeFolder, "temp." + codeFile);
-            File.WriteAllText(temporaryPath, code);
-
-            context.Logger.LogMessage("Starting compilation", variantsCount);
-            input.Identity.SourceFilename = temporaryPath;
-            input.EffectCode = code;
-
-            var defines = new List<string>();
-            var definesBuilder = new StringBuilder();
-
-            for (var i = 0; i < variantsCount; ++i)
+            var temporaryPath = string.Empty;
+            try
             {
-                defines.Clear();
-                for(var j = 0; j < indices.Length; ++j)
-                {
-                    var index = indices[j];
-                    var define = defineSets[j][index];
+                // Save code to temporary file
+                var codeFolder = Path.GetDirectoryName(input.Identity.SourceFilename);
+                var codeFile = Path.GetFileName(input.Identity.SourceFilename);
+                temporaryPath = Path.Combine(codeFolder, "temp." + codeFile);
+                File.WriteAllText(temporaryPath, code);
 
-                    if (!string.IsNullOrEmpty(define))
+                context.Logger.LogMessage("Starting compilation", variantsCount);
+                input.Identity.SourceFilename = temporaryPath;
+                input.EffectCode = code;
+
+                var defines = new List<string>();
+                var definesBuilder = new StringBuilder();
+
+                for (var i = 0; i < variantsCount; ++i)
+                {
+                    defines.Clear();
+                    for (var j = 0; j < indices.Length; ++j)
                     {
-                        defines.Add(define);
+                        var index = indices[j];
+                        var define = defineSets[j][index];
+
+                        if (!string.IsNullOrEmpty(define))
+                        {
+                            defines.Add(define);
+                        }
+                    }
+
+                    // Build defines string
+                    definesBuilder.Clear();
+                    for (var j = 0; j < defines.Count; ++j)
+                    {
+                        var d = defines[j];
+                        definesBuilder.Append(d);
+                        definesBuilder.Append("=1");
+
+                        if (j < defines.Count - 1)
+                        {
+                            definesBuilder.Append(";");
+                        }
+                    }
+
+                    effectProcessor.Defines = definesBuilder.ToString();
+                    context.Logger.LogMessage("Compiling variant #{0} with defines '{1}'", i, effectProcessor.Defines);
+                    var ec = effectProcessor.Process(input, context);
+
+                    result.MultiCompileEffect.AddVariant(MultiCompileEffect.BuildKey(defines.ToArray()), ec.GetEffectCode());
+
+                    // Update indices
+                    for (var j = 0; j < indices.Length; ++j)
+                    {
+                        ++indices[j];
+                        if (indices[j] < defineSets[j].Length)
+                        {
+                            break;
+                        }
+
+                        // Reset this index as higher index will be raised
+                        indices[j] = 0;
                     }
                 }
-
-                // Build defines string
-                definesBuilder.Clear();
-                for (var j = 0; j < defines.Count; ++j)
+            }
+            finally
+            {
+                if (!string.IsNullOrEmpty(temporaryPath) && File.Exists(temporaryPath))
                 {
-                    var d = defines[j];
-                    definesBuilder.Append(d);
-                    definesBuilder.Append("=1");
-
-                    if (j < defines.Count - 1)
-                    {
-                        definesBuilder.Append(";");
-                    }
-                }
-
-                effectProcessor.Defines = definesBuilder.ToString();
-                context.Logger.LogMessage("Compiling variant #{0} with defines '{1}'", i, effectProcessor.Defines);
-                var ec = effectProcessor.Process(input, context);
-
-                result.AddVariant(defines.ToArray(), ec.GetEffectCode());
-
-                // Update indices
-                for(var j = 0; j < indices.Length; ++j)
-                {
-                    ++indices[j];
-                    if (indices[j] < defineSets[j].Length)
-                    {
-                        break;
-                    }
-
-                    // Reset this index as higher index will be raised
-                    indices[j] = 0;
+                    File.Delete(temporaryPath);
                 }
             }
 

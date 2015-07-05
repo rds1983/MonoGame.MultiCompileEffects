@@ -50,9 +50,15 @@
   <ItemGroup>
     <Compile Include="MultiCompileEffectContent.cs" />
     <Compile Include="MultiCompileEffectProcessor.cs" />
+    <Compile Include="MultiCompileEffectWriter.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <ProjectReference Include="..\MonoGame.MultiCompileEffects\MonoGame.MultiCompileEffects.csproj">
+      <Project>{13F41C12-9558-4F98-90E1-299BB64273A8}</Project>
+      <Name>MonoGame.MultiCompileEffects</Name>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
