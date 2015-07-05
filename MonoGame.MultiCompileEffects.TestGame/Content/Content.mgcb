@@ -1,0 +1,21 @@
+
+#----------------------------- Global Properties ----------------------------#
+
+/outputDir:bin/Windows
+/intermediateDir:obj/Windows
+/platform:Windows
+/config:
+/profile:Reach
+/compress:False
+
+#-------------------------------- References --------------------------------#
+
+/reference:D:\Projects\MonoGame.MultiCompileEffects\MonoGame.MultiCompileEffects.Content.Pipeline\bin\Debug\MonoGame.MultiCompileEffects.Content.Pipeline.dll
+
+#---------------------------------- Content ---------------------------------#
+
+#begin BasicEffect.fx
+/importer:EffectImporter
+/processor:MultiCompileEffectProcessor
+/build:BasicEffect.fx
+
