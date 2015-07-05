@@ -13,7 +13,7 @@ namespace MonoGame.MultiCompileEffects
 
         public static string BuildKey(string[] defines)
         {
-            return string.Join(",", defines);
+            return string.Join(";", defines);
         }
 
         public void AddVariant(string defines, byte[] effectCode)

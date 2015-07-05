@@ -135,7 +135,6 @@ namespace MonoGame.MultiCompileEffects.Content.Pipeline
                 input.EffectCode = code;
 
                 var defines = new List<string>();
-                var definesBuilder = new StringBuilder();
 
                 for (var i = 0; i < variantsCount; ++i)
                 {
@@ -152,24 +151,12 @@ namespace MonoGame.MultiCompileEffects.Content.Pipeline
                     }
 
                     // Build defines string
-                    definesBuilder.Clear();
-                    for (var j = 0; j < defines.Count; ++j)
-                    {
-                        var d = defines[j];
-                        definesBuilder.Append(d);
-                        definesBuilder.Append("=1");
 
-                        if (j < defines.Count - 1)
-                        {
-                            definesBuilder.Append(";");
-                        }
-                    }
-
-                    effectProcessor.Defines = definesBuilder.ToString();
+                    effectProcessor.Defines = MultiCompileEffect.BuildKey(defines.ToArray());
                     context.Logger.LogMessage("Compiling variant #{0} with defines '{1}'", i, effectProcessor.Defines);
                     var ec = effectProcessor.Process(input, context);
 
-                    result.MultiCompileEffect.AddVariant(MultiCompileEffect.BuildKey(defines.ToArray()), ec.GetEffectCode());
+                    result.MultiCompileEffect.AddVariant(effectProcessor.Defines, ec.GetEffectCode());
 
                     // Update indices
                     for (var j = 0; j < indices.Length; ++j)

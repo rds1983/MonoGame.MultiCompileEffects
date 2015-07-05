@@ -1,10 +1,10 @@
 #include "Macros.fxh"
 
-#pragma multi_compile LIGHTS_ON LIGHTS_OFF
+#pragma shader_feature LIGHTNING
 
 BEGIN_CONSTANTS
 
-#ifdef LIGHTS_ON
+#ifdef LIGHTNING
 float3 dirLight0Direction;
 float4 dirLight0DiffuseColor;
 #endif
@@ -12,7 +12,7 @@ float4 dirLight0DiffuseColor;
 MATRIX_CONSTANTS
 
 float4x4 worldViewProj;
-float3x3 worldViewProjInverseTranspose;
+float3x3 worldInverseTranspose;
 float4 diffuseColor;
 
 END_CONSTANTS
@@ -20,7 +20,7 @@ END_CONSTANTS
 struct VSInput
 {
     float4 Position : SV_Position;
-#ifdef LIGHTS_ON
+#ifdef LIGHTNING
     float3 Normal   : NORMAL;
 #endif
 };
@@ -37,8 +37,8 @@ VSOutput VertexShaderFunction(VSInput input)
 
     output.PositionPS = mul(input.Position, worldViewProj);
 
-#ifdef LIGHTS_ON	
-    float3 normal = mul(input.Normal, worldViewProjInverseTranspose);
+#ifdef LIGHTNING	
+    float3 normal = mul(input.Normal, worldInverseTranspose);
     float lightIntensity = dot(-normal, dirLight0Direction);
     output.Color = float4(saturate(dirLight0DiffuseColor * lightIntensity));
 #endif
@@ -48,7 +48,7 @@ VSOutput VertexShaderFunction(VSInput input)
 
 float4 PixelShaderFunction(VSOutput input) : SV_Target0
 {
-#ifdef LIGHTS_ON	
+#ifdef LIGHTNING	
 	return diffuseColor * input.Color;
 #else
     return diffuseColor;

@@ -9,13 +9,23 @@ namespace MonoGame.MultiCompileEffects.TestGame
     /// </summary>
     public class Game1 : Game
     {
-        GraphicsDeviceManager graphics;
-        SpriteBatch spriteBatch;
+        private GraphicsDeviceManager _graphics;
+        private SpriteBatch _spriteBatch;
+        private SpriteFont _defaultFont;
+        private readonly PerspectiveCamera _camera = new PerspectiveCamera();
+        private Effect _simpleEffect;
+        private Effect _lightningEffect;
+        private readonly Cube _cube = new Cube();
+        private int _rotationAngle = 0;
+        private bool _lightningOn = true;
+        private bool _keyCDown = false;
 
         public Game1()
         {
-            graphics = new GraphicsDeviceManager(this);
+            _graphics = new GraphicsDeviceManager(this);
             Content.RootDirectory = "Content";
+
+            IsMouseVisible = true;
         }
 
         /// <summary>
@@ -38,13 +48,15 @@ namespace MonoGame.MultiCompileEffects.TestGame
         protected override void LoadContent()
         {
             // Create a new SpriteBatch, which can be used to draw textures.
-            spriteBatch = new SpriteBatch(GraphicsDevice);
+            _spriteBatch = new SpriteBatch(GraphicsDevice);
 
             // TODO: use this.Content to load your game content here
+            _defaultFont = Content.Load<SpriteFont>("Default");
+
             var mcEffect = Content.Load<MultiCompileEffect>("BasicEffect");
 
-            var simpleEffect = new Effect(GraphicsDevice, mcEffect.GetVariant(MultiCompileEffect.BuildKey(new[] { "LIGHTS_OFF" })));
-            var lightningEffect = new Effect(GraphicsDevice, mcEffect.GetVariant(MultiCompileEffect.BuildKey(new [] {"LIGHTS_ON"})));
+            _simpleEffect = new Effect(GraphicsDevice, mcEffect.GetVariant(MultiCompileEffect.BuildKey(new[] { string.Empty })));
+            _lightningEffect = new Effect(GraphicsDevice, mcEffect.GetVariant(MultiCompileEffect.BuildKey(new[] { "LIGHTNING" })));
         }
 
         /// <summary>
@@ -67,6 +79,15 @@ namespace MonoGame.MultiCompileEffects.TestGame
                 Exit();
 
             // TODO: Add your update logic here
+            if (Keyboard.GetState().IsKeyDown(Keys.C) && !_keyCDown)
+            {
+                _lightningOn = !_lightningOn;
+                _keyCDown = true;
+            }
+            else if (!Keyboard.GetState().IsKeyDown(Keys.C) && _keyCDown)
+            {
+                _keyCDown = false;
+            }
 
             base.Update(gameTime);
         }
@@ -79,7 +100,57 @@ namespace MonoGame.MultiCompileEffects.TestGame
         {
             GraphicsDevice.Clear(Color.CornflowerBlue);
 
+            // Update camera
+            _camera.Viewport = new Vector2(GraphicsDevice.Viewport.Width, GraphicsDevice.Viewport.Height);
+
+            // Prepare matrices
+            var viewProjection = _camera.View * _camera.Projection;
+
+            var angle = MathHelper.ToRadians(_rotationAngle);
+            var transform = Matrix.CreateRotationX(angle) * Matrix.CreateRotationY(angle);
+
+            ++_rotationAngle;
+            while (_rotationAngle >= 360)
+            {
+                _rotationAngle -= 360;
+            }
+
+            var worldViewProj = transform * viewProjection;
+            var worldInverseTranspose = Matrix.Transpose(Matrix.Invert(transform));
+
+            // Update effect parameters
+            var effect = _lightningOn ? _lightningEffect : _simpleEffect;
+
+            effect.Parameters["worldViewProj"].SetValue(worldViewProj);
+            effect.Parameters["worldInverseTranspose"].SetValue(worldInverseTranspose);
+            effect.Parameters["diffuseColor"].SetValue(Color.Green.ToVector4());
+
+            if (_lightningOn)
+            {
+                // Update lightning parameters
+                effect.Parameters["dirLight0Direction"].SetValue(new Vector3(0, 0, -1));
+                effect.Parameters["dirLight0DiffuseColor"].SetValue(Color.White.ToVector4());
+            }
+
             // TODO: Add your drawing code here
+            foreach (var t in effect.Techniques)
+            {
+                foreach (var p in t.Passes)
+                {
+                    p.Apply();
+
+                    _cube.Render(GraphicsDevice);
+                }
+            }
+
+            _spriteBatch.Begin();
+
+            _spriteBatch.DrawString(_defaultFont,
+                string.Format("Lightning: {0}. Press 'C' to switch.", _lightningOn ? "on" : "off"),
+                new Vector2(0, 0), Color.White);
+
+            _spriteBatch.End();
+
 
             base.Draw(gameTime);
         }

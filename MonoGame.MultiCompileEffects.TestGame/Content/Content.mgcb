@@ -19,3 +19,9 @@
 /processor:MultiCompileEffectProcessor
 /build:BasicEffect.fx
 
+#begin Default.spritefont
+/importer:FontDescriptionImporter
+/processor:FontDescriptionProcessor
+/processorParam:TextureFormat=Compressed
+/build:Default.spritefont
+
