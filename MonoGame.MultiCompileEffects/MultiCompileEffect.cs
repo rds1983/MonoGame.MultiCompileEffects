@@ -7,7 +7,7 @@ namespace MonoGame.MultiCompileEffects
     {
         private readonly Dictionary<string, byte[]> _variants = new Dictionary<string, byte[]>();
 
-        public string DefaultVariantKey { get; internal set; }
+        public string DefaultVariantKey { get; set; }
 
         public Dictionary<string, byte[]> Variants
         {

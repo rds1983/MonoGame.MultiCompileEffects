@@ -16,9 +16,9 @@ namespace MonoGame.MultiCompileEffects.TestGame
         private Effect _simpleEffect;
         private Effect _lightningEffect;
         private readonly Cube _cube = new Cube();
-        private int _rotationAngle = 0;
+        private int _rotationAngle;
         private bool _lightningOn = true;
-        private bool _keyCDown = false;
+        private bool _keyCDown;
 
         public Game1()
         {
@@ -120,7 +120,7 @@ namespace MonoGame.MultiCompileEffects.TestGame
 
             // Update effect parameters
             var effect = _lightningOn ? _lightningEffect : _simpleEffect;
-
+            
             effect.Parameters["worldViewProj"].SetValue(worldViewProj);
             effect.Parameters["worldInverseTranspose"].SetValue(worldInverseTranspose);
             effect.Parameters["diffuseColor"].SetValue(Color.Green.ToVector4());

@@ -18,13 +18,9 @@ namespace MonoGame.MultiCompileEffects
                 var effectCode = input.ReadBytes(effectCodeLength);
 
                 result.AddVariant(key, effectCode);
-
-                // First variant is default
-                if (i == 0)
-                {
-                    result.DefaultVariantKey = key;
-                }
             }
+
+            result.DefaultVariantKey = input.ReadString();
 
             return result;
         }

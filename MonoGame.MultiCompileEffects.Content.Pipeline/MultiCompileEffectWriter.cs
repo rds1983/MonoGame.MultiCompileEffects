@@ -1,5 +1,4 @@
-﻿using Microsoft.Xna.Framework.Content;
-using Microsoft.Xna.Framework.Content.Pipeline.Serialization.Compiler;
+﻿using Microsoft.Xna.Framework.Content.Pipeline.Serialization.Compiler;
 
 namespace MonoGame.MultiCompileEffects.Content.Pipeline
 {
@@ -16,6 +15,8 @@ namespace MonoGame.MultiCompileEffects.Content.Pipeline
                 output.Write(v.Value.Length);
                 output.Write(v.Value);
             }
+
+            output.Write(value.MultiCompileEffect.DefaultVariantKey);
         }
 
         public override string GetRuntimeReader(Microsoft.Xna.Framework.Content.Pipeline.TargetPlatform targetPlatform)
