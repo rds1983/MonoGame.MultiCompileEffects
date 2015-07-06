@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.Xna.Framework.Content.Pipeline;
 using Microsoft.Xna.Framework.Content.Pipeline.Graphics;
@@ -72,7 +71,7 @@ namespace MonoGame.MultiCompileEffects.Content.Pipeline
                 context.Logger.LogMessage("Found #pragma shader_feature");
                 if (!string.IsNullOrEmpty(featureName))
                 {
-                    var newSet = new[] {featureName, string.Empty};
+                    var newSet = new[] { string.Empty, featureName };
                     context.Logger.LogMessage("Added defines' set: {0}", string.Join(", ", newSet));
                     result.Add(newSet);
                 }
@@ -106,12 +105,12 @@ namespace MonoGame.MultiCompileEffects.Content.Pipeline
             {
                 context.Logger.LogMessage("No multi compile pragmas found, only one default variant will be compiled");
                 var ec = effectProcessor.Process(input, context);
-                result.MultiCompileEffect.AddVariant(MultiCompileEffect.BuildKey(new string[0]), ec.GetEffectCode());
+                result.MultiCompileEffect.AddVariant(string.Empty, ec.GetEffectCode());
                 return result;
             }
 
             var variantsCount = 1;
-            foreach(var d in defineSets)
+            foreach (var d in defineSets)
             {
                 variantsCount *= d.Length;
             }
@@ -143,11 +142,7 @@ namespace MonoGame.MultiCompileEffects.Content.Pipeline
                     {
                         var index = indices[j];
                         var define = defineSets[j][index];
-
-                        if (!string.IsNullOrEmpty(define))
-                        {
-                            defines.Add(define);
-                        }
+                        defines.Add(define);
                     }
 
                     // Build defines string
@@ -171,6 +166,8 @@ namespace MonoGame.MultiCompileEffects.Content.Pipeline
                         indices[j] = 0;
                     }
                 }
+
+                context.Logger.LogMessage("Multi compile effect processing done succesfully.");
             }
             finally
             {
@@ -183,9 +180,8 @@ namespace MonoGame.MultiCompileEffects.Content.Pipeline
             var span = (DateTime.Now - start).TotalSeconds;
 
             context.Logger.LogMessage("{0} seconds spent", span);
-            
+
             return result;
         }
     }
-
 }

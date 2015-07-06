@@ -10,7 +10,7 @@
 
 #-------------------------------- References --------------------------------#
 
-/reference:D:\Projects\MonoGame.MultiCompileEffects\MonoGame.MultiCompileEffects.Content.Pipeline\bin\Debug\MonoGame.MultiCompileEffects.Content.Pipeline.dll
+/reference:D:\Projects\Myra\ThirdParty\MonoGame.MultiCompileEffects\MonoGame.MultiCompileEffects.Content.Pipeline\bin\Debug\MonoGame.MultiCompileEffects.Content.Pipeline.dll
 
 #---------------------------------- Content ---------------------------------#
 
