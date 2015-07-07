@@ -1,70 +1,50 @@
-Multi compile effects for the Monogame.
-Sample code:
-FX:
-```hlsl
-#include "Macros.fxh"
+### Overview
+Multi compile effects library for the Monogame.
+Analogue of the Unity3D's multiple shader variants:
+http://docs.unity3d.com/Manual/SL-MultipleProgramVariants.html
 
-#pragma multi_compile LIGHTS_ON LIGHTS_OFF
+Right now, it works only for Windows.
+### Usage
+1. Obtain MonoGame.MultiCompileEffect binaries.
+2. Reference MonoGame.MultiCompileEffects.Content.Pipeline.dll in the MonoGame Pipeline:
+![Update Reference](/Images/updateReference.png)
+3. Update your FXs with the following instructions: 
+	```hlsl
+	// Adds 4 variants of the effect: with 'ONE', ..., 'FOUR' macros defined accordingly:
+	#pragma multi_compile ONE TWO THREE FOUR 
 
-BEGIN_CONSTANTS
+	#ifdef ONE
+	...
+	#endif
 
-#ifdef LIGHTS_ON
-float3 dirLight0Direction;
-float4 dirLight0DiffuseColor;
-#endif
+	...
+	#ifdef FOUR
+	...
+	#endif
 
-MATRIX_CONSTANTS
+	// Adds 2 variants of the effect: with 'FEATURE' macro defined and without it:
+	#pragma shader_feature FEATURE 
+	
+	#ifdef FEATURE
+	...
+	#else
+	...
+	#endif
+	```
+4. Set processor of your FXs to "MultiCompileEffect - MonoGame":
+![Update Reference](/Images/updateProcessor.png)
+5. Run the Pipeline Tool. It'll compile all possible shader variants(8 in our example) in the resulting XNB.
+6. In the runtime reference MonoGame.MultiCompileEffect.dll and use the following code:
+	```c#
+	var mcEffect = Content.Load<MultiCompileEffect>("MyEffect");
 
-float4x4 worldViewProj;
-float3x3 worldInverseTranspose;
-float4 diffuseColor;
+	// Default variant: with 'ONE':
+	var effect = new Effect(device, mcEffect.GetDefaultVariant()); 
+	
+	// Variant with 'TWO' macro defined:
+	var effectTwo = new Effect(device, mcEffect.GetVariant(new[] {"TWO"}));
+	
+	// Variant with 'TWO' and 'FEATURE' macros defined:
+	var effectThreeFeature = new Effect(device, mcEffect.GetVariant(new[] {"TWO", "FEATURE"}));
+	```
 
-END_CONSTANTS
-
-struct VSInput
-{
-    float4 Position : SV_Position;
-#ifdef LIGHTS_ON
-    float3 Normal   : NORMAL;
-#endif
-};
-
-struct VSOutput
-{
-    float4 PositionPS : SV_Position;
-    float4 Color: COLOR;
-};
-
-VSOutput VertexShaderFunction(VSInput input)
-{
-    VSOutput output;
-
-    output.PositionPS = mul(input.Position, worldViewProj);
-
-#ifdef LIGHTS_ON
-    float3 normal = mul(input.Normal, worldInverseTranspose);
-    float lightIntensity = dot(-normal, dirLight0Direction);
-    output.Color = float4(saturate(dirLight0DiffuseColor * lightIntensity));
-#endif
-
-    return output;
-}
-
-float4 PixelShaderFunction(VSOutput input) : SV_Target0
-{
-#ifdef LIGHTS_ON
-	return diffuseColor * input.Color;
-#else
-    return diffuseColor;
-#endif
-}
-
-TECHNIQUE(Default, VertexShaderFunction, PixelShaderFunction);
-```
-
-C#:
-```c#
-MultiCompileEffect mcEffect = Content.Load<MultiCompileEffect>("MyEffect");
-Effect simpleEffect = mcEffect.Create(new [] {"LIGHTS_OFF");
-Effect lightningEffect = mcEffect.Create(new [] {"LIGHTS_ON"});
-```
