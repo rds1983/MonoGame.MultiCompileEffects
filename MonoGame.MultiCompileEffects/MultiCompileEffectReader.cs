@@ -1,4 +1,6 @@
-﻿using Microsoft.Xna.Framework.Content;
+﻿using System;
+using Microsoft.Xna.Framework.Content;
+using Microsoft.Xna.Framework.Graphics;
 
 namespace MonoGame.MultiCompileEffects
 {
@@ -6,6 +8,13 @@ namespace MonoGame.MultiCompileEffects
     {
         protected override MultiCompileEffect Read(ContentReader input, MultiCompileEffect existingInstance)
         {
+            var graphicsDeviceService = input.ContentManager.ServiceProvider.GetService(typeof(IGraphicsDeviceService)) as IGraphicsDeviceService;
+            if (graphicsDeviceService == null)
+            {
+                throw new InvalidOperationException("No Graphics Device Service");
+            }
+
+
             var count = input.ReadInt32();
 
             var result = new MultiCompileEffect();
@@ -17,7 +26,9 @@ namespace MonoGame.MultiCompileEffects
                 var effectCodeLength = input.ReadInt32();
                 var effectCode = input.ReadBytes(effectCodeLength);
 
-                result.AddEffectCode(key, effectCode);
+                var effect = new Effect(graphicsDeviceService.GraphicsDevice, effectCode);
+
+                result.AddEffect(key, effect);
             }
 
             result.DefaultVariantKey = input.ReadString();

@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using Microsoft.Xna.Framework.Graphics;
 
 namespace MonoGame.MultiCompileEffects
 {
@@ -7,13 +8,13 @@ namespace MonoGame.MultiCompileEffects
     {
         public const string DefineSeparator = ";";
 
-        private readonly Dictionary<string, byte[]> _allEffectCodes = new Dictionary<string, byte[]>();
+        private readonly Dictionary<string, Effect> _effects = new Dictionary<string, Effect>();
 
         public string DefaultVariantKey { get; internal set; }
 
         public IEnumerable<string> AllKeys
         {
-            get { return _allEffectCodes.Keys; }
+            get { return _effects.Keys; }
         }
 
         public static string BuildKey(string[] defines)
@@ -22,28 +23,28 @@ namespace MonoGame.MultiCompileEffects
                 (from d in defines where !string.IsNullOrEmpty(d.Trim()) orderby d select d.ToUpper()));
         }
 
-        internal void AddEffectCode(string defines, byte[] effectCode)
+        internal void AddEffect(string defines, Effect effect)
         {
-            _allEffectCodes[defines] = effectCode;
+            _effects[defines] = effect;
         }
 
-        private byte[] InternalGetEffectCode(string key)
+        private Effect InternalGetEffect(string key)
         {
-            byte[] result;
-            _allEffectCodes.TryGetValue(key, out result);
+            Effect result;
+            _effects.TryGetValue(key, out result);
 
             return result;
         }
 
-        public byte[] GetEffectCode(string[] defines)
+        public Effect GetEffect(string[] defines)
         {
             var key = BuildKey(defines);
-            return InternalGetEffectCode(key);
+            return InternalGetEffect(key);
         }
 
-        public byte[] GetDefaultEffectCode()
+        public Effect GetDefaultEffect()
         {
-            return InternalGetEffectCode(DefaultVariantKey);
+            return InternalGetEffect(DefaultVariantKey);
         }
     }
 }
