@@ -7,16 +7,16 @@ namespace MonoGame.MultiCompileEffects.Content.Pipeline
     {
         protected override void Write(ContentWriter output, MultiCompileEffectContent value)
         {
-            output.Write(value.MultiCompileEffect.Variants.Count);
+            output.Write(value.Variants.Count);
 
-            foreach(var v in value.MultiCompileEffect.Variants)
+            foreach(var v in value.Variants)
             {
                 output.Write(v.Key);
                 output.Write(v.Value.Length);
                 output.Write(v.Value);
             }
 
-            output.Write(value.MultiCompileEffect.DefaultVariantKey);
+            output.Write(value.DefaultVariantKey);
         }
 
         public override string GetRuntimeReader(Microsoft.Xna.Framework.Content.Pipeline.TargetPlatform targetPlatform)

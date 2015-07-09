@@ -39,12 +39,12 @@ Right now, it works only for Windows.
 	var mcEffect = Content.Load<MultiCompileEffect>("MyEffect");
 
 	// Default variant: with 'ONE':
-	var effect = new Effect(device, mcEffect.GetDefaultVariant()); 
+	var effect = new Effect(device, mcEffect.GetDefaultEffectCode()); 
 	
 	// Variant with 'TWO' macro defined:
-	var effectTwo = new Effect(device, mcEffect.GetVariant(new[] {"TWO"}));
+	var effectTwo = new Effect(device, mcEffect.GetEffectCode(new[] {"TWO"}));
 	
 	// Variant with 'TWO' and 'FEATURE' macros defined:
-	var effectThreeFeature = new Effect(device, mcEffect.GetVariant(new[] {"TWO", "FEATURE"}));
+	var effectThreeFeature = new Effect(device, mcEffect.GetEffectCode(new[] {"TWO", "FEATURE"}));
 	```
 

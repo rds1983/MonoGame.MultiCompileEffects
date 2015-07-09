@@ -17,12 +17,12 @@ namespace MonoGame.MultiCompileEffects
                 var effectCodeLength = input.ReadInt32();
                 var effectCode = input.ReadBytes(effectCodeLength);
 
-                result.AddVariant(key, effectCode);
+                result.AddEffectCode(key, effectCode);
             }
 
             result.DefaultVariantKey = input.ReadString();
 
-            return result;
+             return result;
         }
     }
 }

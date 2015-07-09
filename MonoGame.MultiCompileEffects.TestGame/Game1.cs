@@ -55,8 +55,8 @@ namespace MonoGame.MultiCompileEffects.TestGame
 
             var mcEffect = Content.Load<MultiCompileEffect>("BasicEffect");
 
-            _simpleEffect = new Effect(GraphicsDevice, mcEffect.GetDefaultVariant());
-            _lightningEffect = new Effect(GraphicsDevice, mcEffect.GetVariant(MultiCompileEffect.BuildKey(new[] { "LIGHTNING" })));
+            _simpleEffect = new Effect(GraphicsDevice, mcEffect.GetDefaultEffectCode());
+            _lightningEffect = new Effect(GraphicsDevice, mcEffect.GetEffectCode(new[] { "LIGHTNING" }));
         }
 
         /// <summary>

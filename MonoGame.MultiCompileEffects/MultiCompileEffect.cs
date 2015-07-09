@@ -5,37 +5,45 @@ namespace MonoGame.MultiCompileEffects
 {
     public class MultiCompileEffect
     {
-        private readonly Dictionary<string, byte[]> _variants = new Dictionary<string, byte[]>();
+        public const string DefineSeparator = ";";
 
-        public string DefaultVariantKey { get; set; }
+        private readonly Dictionary<string, byte[]> _allEffectCodes = new Dictionary<string, byte[]>();
 
-        public Dictionary<string, byte[]> Variants
+        public string DefaultVariantKey { get; internal set; }
+
+        public IEnumerable<string> AllKeys
         {
-            get { return _variants; }
+            get { return _allEffectCodes.Keys; }
         }
 
         public static string BuildKey(string[] defines)
         {
-            return string.Join(";", 
-                (from d in defines where !string.IsNullOrEmpty(d) select d));
+            return string.Join(DefineSeparator,
+                (from d in defines where !string.IsNullOrEmpty(d.Trim()) orderby d select d.ToUpper()));
         }
 
-        public void AddVariant(string defines, byte[] effectCode)
+        internal void AddEffectCode(string defines, byte[] effectCode)
         {
-            _variants[defines] = effectCode;
+            _allEffectCodes[defines] = effectCode;
         }
 
-        public byte[] GetVariant(string defines)
+        private byte[] InternalGetEffectCode(string key)
         {
             byte[] result;
-            _variants.TryGetValue(defines, out result);
+            _allEffectCodes.TryGetValue(key, out result);
 
             return result;
         }
 
-		public byte[] GetDefaultVariant()
-		{
-		    return GetVariant(DefaultVariantKey);
-		}
+        public byte[] GetEffectCode(string[] defines)
+        {
+            var key = BuildKey(defines);
+            return InternalGetEffectCode(key);
+        }
+
+        public byte[] GetDefaultEffectCode()
+        {
+            return InternalGetEffectCode(DefaultVariantKey);
+        }
     }
 }

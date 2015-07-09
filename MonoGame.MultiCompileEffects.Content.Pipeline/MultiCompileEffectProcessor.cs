@@ -105,7 +105,8 @@ namespace MonoGame.MultiCompileEffects.Content.Pipeline
             {
                 context.Logger.LogMessage("No multi compile pragmas found, only one default variant will be compiled");
                 var ec = effectProcessor.Process(input, context);
-                result.MultiCompileEffect.AddVariant(string.Empty, ec.GetEffectCode());
+                result.DefaultVariantKey = string.Empty;
+                result.AddVariant(result.DefaultVariantKey, ec.GetEffectCode());
                 return result;
             }
 
@@ -150,13 +151,13 @@ namespace MonoGame.MultiCompileEffects.Content.Pipeline
                     context.Logger.LogMessage("Compiling variant #{0} with defines '{1}'", i, effectProcessor.Defines);
                     var ec = effectProcessor.Process(input, context);
 
-                    result.MultiCompileEffect.AddVariant(effectProcessor.Defines, ec.GetEffectCode());
+                    result.AddVariant(effectProcessor.Defines, ec.GetEffectCode());
 
                     if (i == 0)
                     {
                         // First variant is default
-                        result.MultiCompileEffect.DefaultVariantKey = effectProcessor.Defines;
-                        context.Logger.LogMessage("Default variant key is '{0}'", result.MultiCompileEffect.DefaultVariantKey);
+                        result.DefaultVariantKey = effectProcessor.Defines;
+                        context.Logger.LogMessage("Default variant key is '{0}'", result.DefaultVariantKey);
                     }
 
                     // Update indices
