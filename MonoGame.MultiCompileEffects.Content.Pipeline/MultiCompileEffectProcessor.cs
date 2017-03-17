@@ -2,193 +2,358 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text.RegularExpressions;
 using Microsoft.Xna.Framework.Content.Pipeline;
 using Microsoft.Xna.Framework.Content.Pipeline.Graphics;
 using Microsoft.Xna.Framework.Content.Pipeline.Processors;
+using Newtonsoft.Json.Linq;
 
 namespace MonoGame.MultiCompileEffects.Content.Pipeline
 {
-    /// <summary>
-    /// Processes a string representation to a platform-specific compiled effect.
-    /// </summary>
-    [ContentProcessor(DisplayName = "MultiCompileEffect - MonoGame")]
-    public class MultiCompileEffectProcessor : ContentProcessor<EffectContent, MultiCompileEffectContent>
-    {
-        private static string ReadFileWithIncludes(string filePath)
-        {
-            var folder = Path.GetDirectoryName(filePath);
-            var regex = new Regex(@"#include\s+[""<]([^"">]+)*["">]");
+	/// <summary>
+	/// Processes a string representation to a platform-specific compiled effect.
+	/// </summary>
+	[ContentProcessor(DisplayName = "MultiCompileEffect - MonoGame")]
+	public class MultiCompileEffectProcessor : ContentProcessor<EffectContent, MultiCompileEffectContent>
+	{
+		private class VariantSetNode
+		{
+			private readonly List<VariantsNode> _sets = new List<VariantsNode>();
+			private int _variantsCount;
 
-            var content = File.ReadAllText(filePath);
-            var matches = regex.Matches(content);
+			public int VariantsCount
+			{
+				get { return _variantsCount; }
+			}
 
-            foreach (Match m in matches)
-            {
-                var includeFile = m.Groups[1].Value;
-                var includePath = Path.Combine(folder, includeFile);
+			public bool HasValues
+			{
+				get { return _sets[_sets.Count - 1].HasValues; }
+			}
 
-                var includeContent = ReadFileWithIncludes(includePath);
+			public void Reset()
+			{
+				foreach (var v in _sets)
+				{
+					v.Reset();
+				}
+			}
 
-                content = content.Replace(m.Groups[0].Value, includeContent);
-            }
+			public void GetCurrentVariant(List<string> result)
+			{
+				foreach (var v in _sets)
+				{
+					v.GetCurrentVariant(result);
+				}
+			}
 
-            return content;
-        }
+			public void Move()
+			{
+				var first = _sets[0];
+				first.Move();
 
-        private static string Collect(ContentProcessorContext context, string code, out string[][] defineSets)
-        {
-            // #pragma multi_compile
-            var regex = new Regex(@"#pragma\s+multi_compile\s+(.*)$", RegexOptions.Multiline);
-            var matches = regex.Matches(code);
+				if (first.HasValues)
+				{
+					return;
+				}
 
-            var result = new List<string[]>();
+				// Reached the end of first set
+				// Now we need to move down in the chain
+				// Resetting everything until we find moveable
+				VariantsNode lastMovable = null;
 
-            foreach (Match m in matches)
-            {
-                context.Logger.LogMessage("Found #pragma multi_compile");
-                // Remove #pragma
-                code = code.Replace(m.Groups[0].Value, string.Empty);
+				foreach (var v in _sets)
+				{
+					if (v.HasValues)
+					{
+						lastMovable = v;
+						break;
+					}
+				}
 
-                var newSet = (from d in m.Groups[1].Value.Split(' ', '\t') where !string.IsNullOrEmpty(d.Trim()) select d.Trim()).ToArray();
-                if (newSet.Length > 0)
-                {
-                    context.Logger.LogMessage("Added defines' set: {0}", string.Join(", ", newSet));
-                    result.Add(newSet);
-                }
-            }
+				if (lastMovable == null)
+				{
+					return;
+				}
 
-            regex = new Regex(@"#pragma\s+shader_feature\s+(.*)$", RegexOptions.Multiline);
-            matches = regex.Matches(code);
+				lastMovable.Move();
 
-            foreach (Match m in matches)
-            {
-                // Remove #pragma
-                code = code.Replace(m.Groups[0].Value, string.Empty);
+				// Reset all nodes before the last moveable
+				foreach (var v in _sets)
+				{
+					if (v == lastMovable)
+					{
+						break;
+					}
 
-                var featureName = m.Groups[1].Value.Trim();
+					v.Reset();
+				}
+			}
 
-                context.Logger.LogMessage("Found #pragma shader_feature");
-                if (!string.IsNullOrEmpty(featureName))
-                {
-                    var newSet = new[] { string.Empty, featureName };
-                    context.Logger.LogMessage("Added defines' set: {0}", string.Join(", ", newSet));
-                    result.Add(newSet);
-                }
-            }
+			public void Parse(JArray array)
+			{
+				for (var i = 0; i < array.Count; ++i)
+				{
+					var node = new VariantsNode();
+					node.Parse(array[i]);
+					_sets.Add(node);
+				}
 
-            defineSets = result.ToArray();
+				_variantsCount = 0;
+				foreach (var v in _sets)
+				{
+					if (v.VariantsCount == 0)
+					{
+						continue;
+					}
 
-            return code;
+					if (_variantsCount == 0)
+					{
+						_variantsCount = v.VariantsCount;
+					}
+					else
+					{
+						_variantsCount *= v.VariantsCount;
+					}
+				}
+			}
+		}
 
-        }
+		private class VariantsNode
+		{
+			private readonly Dictionary<string, VariantNode> _variants = new Dictionary<string, VariantNode>();
+			private int _variantsCount;
 
-        public override MultiCompileEffectContent Process(EffectContent input, ContentProcessorContext context)
-        {
-            var start = DateTime.Now;
+			public int VariantsCount
+			{
+				get { return _variantsCount; }
+			}
 
-            var result = new MultiCompileEffectContent();
-            var effectProcessor = new EffectProcessor();
+			public bool HasValues
+			{
+				get
+				{
+					foreach (var v in _variants)
+					{
+						if (v.Value.HasValues)
+						{
+							return true;
+						}
+					}
 
-            context.Logger.LogMessage("Processing a multi compile effect");
-            context.Logger.LogMessage("Resolving #includes");
-            var code = ReadFileWithIncludes(input.Identity.SourceFilename);
-            context.Logger.LogMessage("Processed #includes, resulting code size is {0}", code.Length);
+					return false;
+				}
+			}
 
-            context.Logger.LogMessage("Collecting shader variants");
-            string[][] defineSets;
-            code = Collect(context, code, out defineSets);
+			public void Reset()
+			{
+				foreach (var v in _variants)
+				{
+					v.Value.Reset();
+				}
+			}
 
-            context.Logger.LogMessage("Collected {0} defineSets", defineSets.Length);
+			public void GetCurrentVariant(List<string> result)
+			{
+				var got = false;
+				foreach (var v in _variants)
+				{
+					if (!v.Value.HasValues) continue;
 
-            if (defineSets.Length == 0)
-            {
-                context.Logger.LogMessage("No multi compile pragmas found, only one default variant will be compiled");
-                var ec = effectProcessor.Process(input, context);
-                result.DefaultVariantKey = string.Empty;
-                result.AddVariant(result.DefaultVariantKey, ec.GetEffectCode());
-                return result;
-            }
+					got = true;
+					v.Value.GetCurrentVariant(result);
+					result.Add(v.Key);
+					break;
+				}
 
-            var variantsCount = 1;
-            foreach (var d in defineSets)
-            {
-                variantsCount *= d.Length;
-            }
+				if (!got)
+				{
+					throw new Exception("No more variants in this node");
+				}
 
-            context.Logger.LogMessage("Total shader variants is {0}", variantsCount);
+			}
 
-            var indices = new int[defineSets.Length];
-            Array.Clear(indices, 0, indices.Length);
+			public void Move()
+			{
+				foreach (var v in _variants)
+				{
+					if (!v.Value.HasValues) continue;
 
-            var temporaryPath = string.Empty;
-            try
-            {
-                // Save code to temporary file
-                var codeFolder = Path.GetDirectoryName(input.Identity.SourceFilename);
-                var codeFile = Path.GetFileName(input.Identity.SourceFilename);
-                temporaryPath = Path.Combine(codeFolder, "temp." + codeFile);
-                File.WriteAllText(temporaryPath, code);
+					v.Value.Move();
+					break;
+				}
+			}
 
-                context.Logger.LogMessage("Starting compilation", variantsCount);
-                input.Identity.SourceFilename = temporaryPath;
-                input.EffectCode = code;
+			public void Parse(JToken variants)
+			{
+				var asArray = variants as JArray;
+				if (asArray != null)
+				{
+					foreach (var v in asArray)
+					{
+						var parts = (from p in v.ToString().Split(';') select p.Trim()).ToArray();
 
-                var defines = new List<string>();
+						foreach (var p in parts)
+						{
+							var subNode = new VariantNode();
+							_variants[p] = subNode;
+						}
+					}
+				}
 
-                for (var i = 0; i < variantsCount; ++i)
-                {
-                    defines.Clear();
-                    for (var j = 0; j < indices.Length; ++j)
-                    {
-                        var index = indices[j];
-                        var define = defineSets[j][index];
-                        defines.Add(define);
-                    }
+				var asObject = variants as JObject;
+				if (asObject != null)
+				{
+					foreach (var v in asObject)
+					{
+						var parts = (from p in v.Key.Split(';') select p.Trim()).ToArray();
 
-                    // Build defines string
-                    effectProcessor.Defines = MultiCompileEffect.BuildKey(defines.ToArray());
-                    context.Logger.LogMessage("Compiling variant #{0} with defines '{1}'", i, effectProcessor.Defines);
-                    var ec = effectProcessor.Process(input, context);
+						foreach (var p in parts)
+						{
+							var subNode = new VariantNode();
+							subNode.Parse((JArray) v.Value);
+							_variants[p] = subNode;
+						}
+					}
+				}
 
-                    result.AddVariant(effectProcessor.Defines, ec.GetEffectCode());
+				_variantsCount = 0;
 
-                    if (i == 0)
-                    {
-                        // First variant is default
-                        result.DefaultVariantKey = effectProcessor.Defines;
-                        context.Logger.LogMessage("Default variant key is '{0}'", result.DefaultVariantKey);
-                    }
+				foreach (var v in _variants)
+				{
+					_variantsCount += v.Value.VariantsCount;
+				}
+			}
+		}
 
-                    // Update indices
-                    for (var j = 0; j < indices.Length; ++j)
-                    {
-                        ++indices[j];
-                        if (indices[j] < defineSets[j].Length)
-                        {
-                            break;
-                        }
+		private class VariantNode
+		{
+			private int _index;
+			private VariantSetNode _dependendVariants;
 
-                        // Reset this index as higher index will be raised
-                        indices[j] = 0;
-                    }
-                }
+			public int VariantsCount
+			{
+				get { return _dependendVariants != null ? _dependendVariants.VariantsCount : 1; }
+			}
 
-                context.Logger.LogMessage("Multi compile effect processing done succesfully.");
-            }
-            finally
-            {
-                if (!string.IsNullOrEmpty(temporaryPath) && File.Exists(temporaryPath))
-                {
-                    File.Delete(temporaryPath);
-                }
-            }
+			public bool HasValues
+			{
+				get { return _dependendVariants != null ? _dependendVariants.HasValues : _index == 0; }
+			}
 
-            var span = (DateTime.Now - start).TotalSeconds;
+			public void Reset()
+			{
+				_index = 0;
 
-            context.Logger.LogMessage("{0} seconds spent", span);
+				if (_dependendVariants != null)
+				{
+					_dependendVariants.Reset();
+				}
+			}
 
-            return result;
-        }
-    }
+			public void GetCurrentVariant(List<string> result)
+			{
+				if (_index >= VariantsCount)
+				{
+					throw new Exception("Index out of range");
+				}
+
+				if (_dependendVariants != null)
+				{
+					_dependendVariants.GetCurrentVariant(result);
+				}
+			}
+
+			public void Move()
+			{
+				if (_dependendVariants != null)
+				{
+					_dependendVariants.Move();
+				}
+				else
+				{
+					++_index;
+				}
+			}
+
+			public void Parse(JArray array)
+			{
+				if (array == null || array.Count == 0)
+				{
+					return;
+				}
+
+				_dependendVariants = new VariantSetNode();
+				_dependendVariants.Parse(array);
+			}
+		}
+
+		public override MultiCompileEffectContent Process(EffectContent input, ContentProcessorContext context)
+		{
+			var start = DateTime.Now;
+			context.Logger.LogMessage("Processing a multi compile effect");
+			context.Logger.LogMessage("Reading shader variants");
+
+			var variantsPath = input.Identity.SourceFilename + ".variants";
+			if (!File.Exists(variantsPath))
+			{
+				throw new Exception(string.Format("MultiCompileEffectProcessor: could not find variants file {0}", variantsPath));
+			}
+
+			// Parse json
+			var data = File.ReadAllText(variantsPath);
+			var root = JArray.Parse(data);
+
+			var rootNode = new VariantSetNode();
+			rootNode.Parse(root);
+
+			var result = new MultiCompileEffectContent();
+			var effectProcessor = new EffectProcessor();
+
+			if (rootNode.VariantsCount == 0)
+			{
+				context.Logger.LogMessage("No variants had been found, only one default variant will be compiled");
+				var ec = effectProcessor.Process(input, context);
+				result.DefaultVariantKey = string.Empty;
+				result.AddVariant(result.DefaultVariantKey, ec.GetEffectCode());
+				return result;
+			}
+
+			context.Logger.LogMessage("Total shader variants is {0}", rootNode.VariantsCount);
+
+			var i = 0;
+			var defines = new List<string>();
+			while (rootNode.HasValues)
+			{
+				// Build defines string
+				defines.Clear();
+				rootNode.GetCurrentVariant(defines);
+
+				// Remove empty
+				defines.RemoveAll(string.IsNullOrEmpty);
+				effectProcessor.Defines = MultiCompileEffect.BuildKey(defines.ToArray());
+				context.Logger.LogMessage("Compiling variant #{0} with defines '{1}'", i, effectProcessor.Defines);
+				var ec = effectProcessor.Process(input, context);
+
+				result.AddVariant(effectProcessor.Defines, ec.GetEffectCode());
+
+				if (i == 0)
+				{
+					// First variant is default
+					result.DefaultVariantKey = effectProcessor.Defines;
+					context.Logger.LogMessage("Default variant key is '{0}'", result.DefaultVariantKey);
+				}
+
+				rootNode.Move();
+				++i;
+			}
+
+			context.Logger.LogMessage("Multi compile effect processing done succesfully.");
+
+			var span = (DateTime.Now - start).TotalSeconds;
+
+			context.Logger.LogMessage("{0} seconds spent", span);
+
+			return result;
+		}
+	}
 }
