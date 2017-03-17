@@ -8,7 +8,7 @@ assembly_info:
   assembly_informational_version: '{version}'
 build_script:
 - cmd: >-
-    nuget.exe restore msbuild MonoGame.MultiCompileEffects.sln
+    nuget.exe restore MonoGame.MultiCompileEffects.sln
 
     msbuild MonoGame.MultiCompileEffects.sln /p:Configuration=Release /t:rebuild
 
