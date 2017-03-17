@@ -24,13 +24,12 @@ It is not possible to specify #defines of Effect during the run-time in the Mono
 	```c#
 	var mcEffect = Content.Load<MultiCompileEffect>("MyEffect");
 
-	// Default variant: with 'ONE':
-	var effect = mcEffect.GetDefaultEffect(); 
+	// Variant with 'LIGHTNING_ON' macro defined:
+	var effect1 = mcEffect.GetEffect(new[] {"LIGHTNING_ON"}));
 	
-	// Variant with 'TWO' macro defined:
-	var effectTwo = mcEffect.GetEffect(new[] {"TWO"}));
-	
-	// Variant with 'TWO' and 'FEATURE' macros defined:
-	var effectThreeFeature = mcEffect.GetEffect(new[] {"TWO", "FEATURE"});
+	// Variant with both 'LIGHTNING_OFF' and 'TEXTURING_ON' macroses defined:
+	var effect2 = mcEffect.GetEffect(new[] {"LIGHTNING_OFF", "TEXTURING_ON"});
 	```
 
+### License
+[https://opensource.org/licenses/MIT](https://opensource.org/licenses/MIT)
