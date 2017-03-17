@@ -9,8 +9,11 @@ assembly_info:
 build_script:
 - cmd: >-
     msbuild MonoGame.MultiCompileEffects.sln /p:Configuration=Release /t:rebuild
+
     copy_zip_package_files.bat 
+
     rename "ZipPackage" "MonoGame.MultiCompileEffects.%APPVEYOR_BUILD_VERSION%"    
+
     7z a MonoGame.MultiCompileEffects.%APPVEYOR_BUILD_VERSION%.zip MonoGame.MultiCompileEffects.%APPVEYOR_BUILD_VERSION%
 artifacts:
   - path: MonoGame.MultiCompileEffects.$(appveyor_build_version).nupkg
