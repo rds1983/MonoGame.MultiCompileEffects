@@ -1,0 +1,29 @@
+version: 0.4.1.{build}
+configuration: Release
+assembly_info:
+  patch: true
+  file: '**\AssemblyInfo.*'
+  assembly_version: '{version}'
+  assembly_file_version: '{version}'
+  assembly_informational_version: '{version}'
+build_script:
+- cmd: >-
+    msbuild MonoGame.MultiCompileEffects.sln /p:Configuration=Release /t:rebuild
+    copy_zip_package_files.bat 
+    rename "ZipPackage" "MonoGame.MultiCompileEffects.%APPVEYOR_BUILD_VERSION%"    
+    7z a MonoGame.MultiCompileEffects.%APPVEYOR_BUILD_VERSION%.zip MonoGame.MultiCompileEffects.%APPVEYOR_BUILD_VERSION%
+artifacts:
+  - path: MonoGame.MultiCompileEffects.$(appveyor_build_version).nupkg
+    name: MonoGame.MultiCompileEffects.nupkg
+
+  - path: MonoGame.MultiCompileEffects.$(appveyor_build_version).zip
+    name: ZipPackage
+deploy:
+  - provider: GitHub
+    release: $(appveyor_build_version)
+    description: $(appveyor_build_version)
+    auth_token:
+      secure: nIpZ5N6iQIXVV8/kK/Y6BqY4KYD+y7HYdq+vTKv+LqZBbxHE9BuEgZAHGVDvmJKh
+    artifact: ZipPackage
+    draft: false
+    prerelease: false
